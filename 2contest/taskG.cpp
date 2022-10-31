@@ -2,45 +2,37 @@
 #include <vector>
 using std::cin, std::cout, std::vector;
 
-const int kBlock = 10000;
-const int kMaxLen = 4;
+const int kBlock = 256;
+const int kMaxLen = 8;
 
-void SortByIndex(vector<vector<int>*>& a, int k) {
-  vector<vector<int>*> ans(a.size(), nullptr);
+int GetByte(unsigned long long n, int i) {
+  unsigned long long k = 255;
+  n = n >> (8 * i);
+  return static_cast<int>(n & k);
+}
+
+void SortByByte(vector<unsigned long long>& a, int k) {
   vector<int> cnt(kBlock, 0);
-  for (auto& i : a) {
-    ++cnt[(*i)[k]];
+  vector<unsigned long long> ans(a.size());
+  for (auto i : a) {
+    ++cnt[GetByte(i, k)];
   }
-  for (int i = 1; i < kBlock; ++i) {
+  for (size_t i = 1; i < kBlock; ++i) {
     cnt[i] += cnt[i - 1];
   }
-  for (int i = a.size() - 1; i >= 0; --i) {
-    ans[cnt[(*a[i])[k]] - 1] = a[i];
-    --cnt[(*a[i])[k]];
+  for (size_t i = a.size(); i > 0; --i) {
+    ans[cnt[GetByte(a[i - 1], k)] - 1] = a[i - 1];
+    --cnt[GetByte(a[i - 1], k)];
   }
-  for (int i = 0; i < static_cast<int>(a.size()); ++i) {
+  for (size_t i = 0; i < a.size(); ++i) {
     a[i] = ans[i];
   }
 }
 
-void Split(unsigned long long n, vector<int>*& ans) {
-  while (n > 0) {
-    (*ans).push_back(static_cast<int>(n % kBlock));
-    n /= kBlock;
+void LSD(vector<unsigned long long>& a) {
+  for (int i = 0; i < kMaxLen; ++i) {
+    SortByByte(a, i);
   }
-  while ((*ans).size() < kMaxLen) {
-    (*ans).push_back(0);
-  }
-}
-
-unsigned long long Join(vector<int>*& a) {
-  unsigned long long pow = 1;
-  unsigned long long ans = (*a)[0];
-  for (int i = 1; i < static_cast<int>((*a).size()); ++i) {
-    pow *= kBlock;
-    ans += (*a)[i] * pow;
-  }
-  return ans;
 }
 
 int main() {
@@ -48,18 +40,12 @@ int main() {
   std::cin.tie(nullptr);
   int n;
   cin >> n;
-  vector<vector<int>*> a(n, nullptr);
+  vector<unsigned long long> a(n);
   for (int k = 0; k < n; ++k) {
-    unsigned long long tmp;
-    cin >> tmp;
-    a[k] = new vector<int>;
-    Split(tmp, a[k]);
+    cin >> a[k];
   }
-  for (int i = 0; i < kMaxLen; ++i) {
-    SortByIndex(a, i);
-  }
+  LSD(a);
   for (auto i : a) {
-    cout << Join(i) << '\n';
-    delete i;
+    cout << i << '\n';
   }
 }
