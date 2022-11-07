@@ -5,10 +5,10 @@ using std::cin, std::cout, std::vector;
 const int kBlock = 256;
 const int kMaxLen = 8;
 
-int GetByte(unsigned long long n, int i) {
-  unsigned long long k = 255;
-  n = n >> (8 * i);
-  return static_cast<int>(n & k);
+unsigned int GetByte(unsigned long long n, int i) {
+  unsigned int k = kBlock - 1;
+  n = n >> (kMaxLen * i);
+  return n & k;
 }
 
 void SortByByte(vector<unsigned long long>& a, int k) {
