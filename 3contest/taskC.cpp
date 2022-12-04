@@ -4,22 +4,25 @@ using std::cout, std::cin, std::vector;
 
 const int kInf = -2;
 
+struct Node {
+  int value;
+  int tl;
+  int tr;
+};
+
 class SegmentTree {
  public:
   SegmentTree(const vector<int>& a);
-  void Set(int x, int i) { Update(i, x); }
-  void Update(int i, int x) { Update(i + t_.size() / 2, i, i, x); }
-  int GetAns(int i, int x) {
-    return Solve(1, 0, t_.size() / 2 - 1, {i, t_.size() / 2 - 1}, x);
-  }
+  void Set(int x, int i) { Update(i + tree_.size() / 2, x); }
+  int GetAns(int i, int x) { return Solve(1, i, tree_.size() / 2 - 1, x); }
 
  private:
-  vector<int> t_;
+  vector<Node> tree_;
 
-  unsigned int GetMinDegTwo(int n);
-  void Update(int v, int tl, int tr, int x);
-  int Solve(int v, int tl, int tr, std::pair<int, int> p, int x);
-  int FindAns(int v, int tl, int tr, int x);
+  static unsigned int GetMinDegTwo(int n);
+  void Update(int v, int x);
+  int Solve(int vertex, int left, int right, int x);
+  int FindAns(int vertex, int tl, int tr, int x);
 };
 
 int main() {
@@ -41,66 +44,68 @@ int main() {
   }
 }
 
-SegmentTree::SegmentTree(const vector<int>& a) : t_(GetMinDegTwo(a.size()), 0) {
-  int n = t_.size() / 2;
-  for (size_t i = 0; i < a.size(); ++i) {
-    t_[i + n] = a[i];
+SegmentTree::SegmentTree(const vector<int>& a) : tree_(GetMinDegTwo(a.size())) {
+  int n = tree_.size() / 2;
+  for (size_t i = 0; i + n < tree_.size(); ++i) {
+    tree_[i + n].value = (i < a.size() ? a[i] : 0);
+    tree_[i + n].tl = tree_[i + n].tr = i;
   }
   for (size_t i = n; i > 1; --i) {
-    t_[i - 1] = std::max(t_[2 * (i - 1)], t_[2 * (i - 1) + 1]);
+    tree_[i - 1].value =
+        std::max(tree_[2 * (i - 1)].value, tree_[2 * (i - 1) + 1].value);
+    tree_[i - 1].tl = tree_[2 * (i - 1)].tl;
+    tree_[i - 1].tr = tree_[2 * (i - 1) + 1].tr;
   }
 }
+
 unsigned int SegmentTree::GetMinDegTwo(int n) {
   unsigned int ans = 1;
   n = 2 * n - 1;
   while (n > 0) {
     n /= 2;
-    ans = ans << 1;
+    ans *= 2;
   }
   return ans;
 }
-void SegmentTree::Update(int v, int tl, int tr, int x) {
-  if (tl == tr) {
-    t_[v] = x;
+
+void SegmentTree::Update(int v, int x) {
+  if (tree_[v].tl == tree_[v].tr) {
+    tree_[v].value = x;
   } else {
-    t_[v] = std::max(t_[v * 2], t_[v * 2 + 1]);
+    tree_[v].value = std::max(tree_[v * 2].value, tree_[v * 2 + 1].value);
   }
   if (v == 1) {
     return;
   }
-  if (v % 2 == 1) {
-    Update(v / 2, tl - (tr - tl + 1), tr, x);
-  } else {
-    Update(v / 2, tl, tr + (tr - tl + 1), x);
-  }
+  Update(v / 2, x);
 }
-int SegmentTree::Solve(int v, int tl, int tr, std::pair<int, int> p, int x) {
-  int l = p.first;
-  int r = p.second;
-  if (tl == l && tr == r) {
-    return FindAns(v, l, r, x);
+
+int SegmentTree::Solve(int vertex, int left, int right, int x) {
+  if (tree_[vertex].tl == left && tree_[vertex].tr == right) {
+    return FindAns(vertex, left, right, x);
   }
-  int tm = (tl + tr) >> 1;
   int ans = kInf;
-  if (l <= tm) {
-    ans = Solve(2 * v, tl, tm, {l, std::min(tm, r)}, x);
+  int tm = (tree_[vertex].tr + tree_[vertex].tl) / 2;
+  if (left <= tm) {
+    ans = Solve(2 * vertex, left, std::min(tm, right), x);
   }
   if (ans != kInf) {
     return ans;
   }
-  return Solve(2 * v + 1, tm + 1, tr, {std::max(tm + 1, l), r}, x);
+  return Solve(2 * vertex + 1, std::max(tm + 1, left), right, x);
 }
-int SegmentTree::FindAns(int v, int tl, int tr, int x) {
-  if (t_[v] < x) {
+
+int SegmentTree::FindAns(int vertex, int tl, int tr, int x) {
+  if (tree_[vertex].value < x) {
     return kInf;
   }
   if (tl == tr) {
-    return v - (t_.size() / 2);
+    return vertex - (tree_.size() / 2);
   }
-  int tm = (tl + tr) >> 1;
-  int tmp = FindAns(v * 2, tl, tm, x);
+  int tm = (tree_[vertex].tr + tree_[vertex].tl) / 2;
+  int tmp = FindAns(vertex * 2, tl, tm, x);
   if (tmp != kInf) {
     return tmp;
   }
-  return FindAns(v * 2 + 1, tm + 1, tr, x);
+  return FindAns(vertex * 2 + 1, tm + 1, tr, x);
 }
