@@ -8,11 +8,15 @@ class SparseTable {
   int GetSecondStatistic(int l, int r);
 
  private:
-  vector<vector<pair<pair<int, int>, int>>> sparse_;
+  struct Node {
+    int first_select;
+    size_t index_of_first_select;
+    int second_select;
+  };
+  vector<vector<Node>> sparse_;
 
   int LogN(int n);
-  int GetSecondSelect(const pair<pair<int, int>, int>& p1,
-                      const pair<pair<int, int>, int>& p2);
+  int GetSecondSelect(const Node& segment_1, const Node& segment_2);
   int GetMaxDegreeOfTwo(int n);
 };
 
@@ -31,40 +35,41 @@ int main() {
   }
 }
 
-SparseTable::SparseTable(const vector<int>& a)
-    : sparse_(LogN(a.size()), vector<pair<pair<int, int>, int>>()) {
+SparseTable::SparseTable(const vector<int>& a) : sparse_(LogN(a.size())) {
   for (size_t i = 0; i < a.size() - 1; ++i) {
     if (a[i] <= a[i + 1]) {
-      sparse_[1].push_back({{a[i], i}, std::max(a[i], a[i + 1])});
+      sparse_[1].push_back({a[i], i, std::max(a[i], a[i + 1])});
     } else {
-      sparse_[1].push_back({{a[i + 1], i + 1}, std::max(a[i], a[i + 1])});
+      sparse_[1].push_back({a[i + 1], i + 1, std::max(a[i], a[i + 1])});
     }
   }
   for (size_t k = 2; k < sparse_.size(); ++k) {
     for (size_t i = 0; i + (1 << (k - 1)) < sparse_[k - 1].size(); ++i) {
-      pair<pair<int, int>, int>& pl = sparse_[k - 1][i];
-      pair<pair<int, int>, int>& pr = sparse_[k - 1][i + (1 << (k - 1))];
-      sparse_[k].push_back(
-          {std::min(pl.first, pr.first), GetSecondSelect(pl, pr)});
+      Node left = sparse_[k - 1][i];
+      Node right = sparse_[k - 1][i + (1 << (k - 1))];
+      Node min = (left.first_select < right.first_select ? left : right);
+      sparse_[k].push_back({min.first_select,
+                            (left.first_select == right.first_select
+                                 ? std::min(left.index_of_first_select,
+                                            right.index_of_first_select)
+                                 : min.index_of_first_select),
+                            GetSecondSelect(left, right)});
     }
   }
 }
 int SparseTable::GetSecondStatistic(int l, int r) {
   if (r - l + 1 == 2) {
-    return sparse_[1][l].second;
+    return sparse_[1][l].second_select;
   }
   int k = GetMaxDegreeOfTwo(r - l + 1);
-  pair<pair<int, int>, int>& pl = sparse_[k][l];
-  pair<pair<int, int>, int>& pr = sparse_[k][r - (1 << k) + 1];
-  return GetSecondSelect(pl, pr);
+  return GetSecondSelect(sparse_[k][l], sparse_[k][r - (1 << k) + 1]);
 }
-int SparseTable::GetSecondSelect(const pair<pair<int, int>, int>& p1,
-                                 const pair<pair<int, int>, int>& p2) {
-  if (p1.first.second == p2.first.second) {
-    return std::min(p1.second, p2.second);
+int SparseTable::GetSecondSelect(const Node& segment_1, const Node& segment_2) {
+  if (segment_1.index_of_first_select == segment_2.index_of_first_select) {
+    return std::min(segment_1.second_select, segment_2.second_select);
   }
-  vector<int> a{p1.first.first, p1.second};
-  vector<int> b{p2.first.first, p2.second};
+  vector<int> a{segment_1.first_select, segment_1.second_select};
+  vector<int> b{segment_2.first_select, segment_2.second_select};
   int i = 0;
   int j = 0;
   if (a[i] <= b[j]) {
