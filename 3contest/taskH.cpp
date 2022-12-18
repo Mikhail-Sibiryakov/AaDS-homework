@@ -15,9 +15,9 @@ class SparseTable {
   };
   vector<vector<Node>> sparse_;
 
-  int LogN(int n);
-  int GetSecondSelect(const Node& segment_1, const Node& segment_2);
-  int GetMaxDegreeOfTwo(int n);
+  static int LogN(int n);
+  static int GetSecondSelect(const Node& segment_1, const Node& segment_2);
+  static int GetMaxDegreeOfTwo(int n);
 };
 
 int main() {
